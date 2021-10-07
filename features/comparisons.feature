@@ -113,6 +113,12 @@ Feature: comparisons
         [ Dimmer10                    , '>'  , 5                           , true  ]  ,
         [ Dimmer10                    , '>'  , 20                          , false ]  ,
 
+        # DimmerItem vs OnOffType
+        [ Dimmer10                    , '==', ON                           , true  ]  ,
+        [ Dimmer10                    , '==', OFF                          , false ]  ,
+        [ Dimmer10                    , '!=', ON                           , false ]  ,
+        [ Dimmer10                    , '!=', OFF                          , true  ]  ,
+
         # Ruby Numeric vs DimmerItem
         [ 10                          , '==' , Dimmer10                    , true  ]  ,
         [ 10.1                        , '==' , Dimmer10                    , false ]  ,
@@ -266,39 +272,6 @@ Feature: comparisons
         [ '5°C'                       , '>'  , QuantityType.new('10°C')    , false ]  ,
         [ '20°C'                      , '>'  , QuantityType.new('50°F')    , true  ]  ,
 
-        # QuantityType vs Quantity
-        [ QuantityType.new('10°C')    , '==' , Quantity.new('10°C')        , true  ]  ,
-        [ QuantityType.new('50°F')    , '==' , Quantity.new('10°C')        , true  ]  ,
-        [ QuantityType.new('10°F')    , '==' , Quantity.new('10°C')        , false ]  ,
-        [ QuantityType.new('10°C')    , '==' , Quantity.new('20°C')        , false ]  ,
-        [ QuantityType.new('10°F')    , '!=' , Quantity.new('10°C')        , true  ]  ,
-        [ QuantityType.new('10.1°C')  , '!=' , Quantity.new('10°C')        , true  ]  ,
-        [ QuantityType.new('50°F')    , '!=' , Quantity.new('10°C')        , false ]  ,
-        [ QuantityType.new('10°C')    , '!=' , Quantity.new('10°C')        , false ]  ,
-        [ QuantityType.new('50°C')    , '>'  , Quantity.new('10°C')        , true  ]  ,
-        [ QuantityType.new('10°F')    , '>'  , Quantity.new('10°C')        , false ]  ,
-        [ QuantityType.new('50°F')    , '>'  , Quantity.new('10°C')        , false ]  ,
-        [ QuantityType.new('10°C')    , '<'  , Quantity.new('20°C')        , true  ]  ,
-        [ QuantityType.new('10°C')    , '<'  , Quantity.new('5°C' )        , false ]  ,
-        [ QuantityType.new('50°F')    , '<'  , Quantity.new('20°C')        , true  ]  ,
-
-        # Quantity vs QuantityType
-        [ Quantity.new('10°C')        , '==' , QuantityType.new('10°C')    , true  ]  ,
-        [ Quantity.new('10°C')        , '==' , QuantityType.new('50°F')    , true  ]  ,
-        [ Quantity.new('10°C')        , '==' , QuantityType.new('10°F')    , false ]  ,
-        [ Quantity.new('20°C')        , '==' , QuantityType.new('10°C')    , false ]  ,
-        [ Quantity.new('10°C')        , '!=' , QuantityType.new('10°F')    , true  ]  ,
-        [ Quantity.new('10°C')        , '!=' , QuantityType.new('10.1°C')  , true  ]  ,
-        [ Quantity.new('10°C')        , '!=' , QuantityType.new('50°F')    , false ]  ,
-        [ Quantity.new('10°C')        , '!=' , QuantityType.new('10°C')    , false ]  ,
-        [ Quantity.new('10°C')        , '<'  , QuantityType.new('50°C')    , true  ]  ,
-        [ Quantity.new('10°C')        , '<'  , QuantityType.new('10°F')    , false ]  ,
-        [ Quantity.new('10°C')        , '<'  , QuantityType.new('50°F')    , false ]  ,
-        [ Quantity.new('20°C')        , '>'  , QuantityType.new('10°C')    , true  ]  ,
-        [ Quantity.new('5°C' )        , '>'  , QuantityType.new('10°C')    , false ]  ,
-        [ Quantity.new('20°C')        , '>'  , QuantityType.new('50°F')    , true  ]  ,
-
-
         # PercentType vs Ruby Numeric
         [ PercentType.new(10)         , '==' , 10                          , true  ]  ,
         [ PercentType.new(10)         , '==' , 1                           , false ]  ,
@@ -402,6 +375,9 @@ Feature: comparisons
 
       def test_to_s(test)
         left, operator, right, expected_result = test
+        method = left.method(operator)
+        logger.info(left.class.ancestors.inspect)
+        logger.info("#{method}:#{method.source_location}")
         "#{left.class} (#{left}) #{operator} #{right.class} (#{right}) should be: #{expected_result}"
       end
 
@@ -411,6 +387,7 @@ Feature: comparisons
         left, operator, right, expected_result = test
         logger.info(test_to_s(test))
         result = left.__send__(operator, right)
+        logger.info("got result #{result}")
         if result == expected_result
           logger.info("#{index} Test OK")
           ok_count += 1
@@ -418,6 +395,10 @@ Feature: comparisons
           failed_tests << test
           logger.error("#{index} Test ERROR")
         end
+      rescue => e
+        failed_tests << test
+        logger.error("#{index} Test ERROR")
+        logger.error("#{e}: #{e.backtrace}")
       end
 
       if ok_count == tests.count

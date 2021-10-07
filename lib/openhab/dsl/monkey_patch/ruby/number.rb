@@ -16,7 +16,7 @@ module OpenHAB
           # @return [Java::JavaTime::Duration] Duration with number of units from self
           #
           %w[millis seconds minutes hours].each do |unit|
-            define_method(unit) { Java::JavaTime::Duration.public_send("of_#{unit}", self) }
+            define_method(unit) { java.time.Duration.public_send("of_#{unit}", self) }
           end
 
           alias second seconds
@@ -37,7 +37,7 @@ module OpenHAB
           # @return [Java::JavaTime::Duration] Duration truncated to an integral number of milliseconds from self
           #
           def millis
-            Java::JavaTime::Duration.of_millis(to_i)
+            java.time.Duration.of_millis(to_i)
           end
 
           #

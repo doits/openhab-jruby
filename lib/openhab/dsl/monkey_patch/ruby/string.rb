@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
-require 'openhab/dsl/types/quantity'
-require 'openhab/dsl/types/datetime'
-require 'openhab/dsl/items/datetime_item'
+require 'openhab/dsl/items/numeric_item'
+require 'openhab/dsl/items/date_time_item'
+require 'openhab/dsl/types/date_time_type'
+require 'openhab/dsl/types/quantity_type'
 
 module OpenHAB
   module DSL
@@ -12,9 +13,6 @@ module OpenHAB
         # Extend String class
         #
         module StringExtensions
-          include OpenHAB::Core
-
-          #
           # Compares String to another object
           #
           # @param [Object] other object to compare to
@@ -23,9 +21,23 @@ module OpenHAB
           #
           def ==(other)
             case other
-            when OpenHAB::DSL::Types::Quantity, QuantityType, Java::OrgOpenhabCoreLibraryTypes::StringType,
-              OpenHAB::DSL::Types::DateTime, OpenHAB::DSL::Items::DateTimeItem
+            when Types::QuantityType,
+              Types::DateTimeType,
+              Items::DateTimeItem,
+              Items::NumericItem
               other == self
+            else
+              super
+            end
+          end
+
+          def <=>(other)
+            case other
+            when Types::QuantityType,
+              Types::DateTimeType,
+              Items::DateTimeItem,
+              Items::NumericItem
+              (other <=> self)&.-@()
             else
               super
             end
@@ -36,9 +48,4 @@ module OpenHAB
   end
 end
 
-#
-# Prepend String class with comparison extensions
-#
-class String
-  prepend OpenHAB::DSL::MonkeyPatch::Ruby::StringExtensions
-end
+String.prepend(OpenHAB::DSL::MonkeyPatch::Ruby::StringExtensions)

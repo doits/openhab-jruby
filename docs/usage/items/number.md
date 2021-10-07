@@ -14,7 +14,7 @@ grand_parent: Usage
 | --------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | truthy?         |            | Item state not UNDEF, not NULL and is not Zero                                                                                                           | `puts "#{item.name} is truthy" if item.truthy?`                              |
 | +,-,\*,/        | amount     | Perform the operation between the state of the number item and the supplied value*                                                                       | `NumberItem << NumberItem - 5` or `NumberItem << 10 + NumberItem`            |
-| \|              | unit       | Convert the supplied NumberItem to the supplied unit. Unit can either be a Unit class or string representation of the symbol, returns a Quantity object. | `NumberItem` &#124; `ImperialUnits::FAHRENHEIT` or `NumberItem `&#124;`'°F'` |
+| \|              | unit       | Convert the supplied NumberItem to the supplied unit. Unit can either be a Unit class or string representation of the symbol, returns a QuantityType object. | `NumberItem` &#124; `ImperialUnits::FAHRENHEIT` or `NumberItem `&#124;`'°F'` |
 | to_d            |            | Returns the state as a BigDecimal or nil if state is UNDEF or NULL                                                                                       | `NumberOne.to_d`                                                             |
 | to_i            |            | Returns the state as an Integer or nil if state is UNDEF or NULL                                                                                         | `NumberOne.to_i`                                                             |
 | to_f            |            | Returns the state as a Float or nil if state is UNDEF or NULL                                                                                            | `NumberOne.to_f`                                                             |
@@ -90,34 +90,34 @@ Quantities are part of the [Units of Measurement](https://www.openhab.org/docs/c
 | Method             | Parameters | Description                                                                                                                | Example                                                                      |
 | ------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | +,-,\*,/,-(negate) | amount     | Perform the operation between the state of the number item and the supplied value*                                         | `NumberItem << NumberItem - 5` or `NumberItem << 10 + NumberItem`            |
-| \|                 | unit       | Convert the supplied Quantity to the supplied unit. Unit can either be a Unit class or string representation of the symbol | `NumberItem` &#124; `ImperialUnits::FAHRENHEIT` or `NumberItem `&#124;`'°F'` |
+| \|                 | unit       | Convert the supplied QuantityType to the supplied unit. Unit can either be a Unit class or string representation of the symbol | `NumberItem` &#124; `ImperialUnits::FAHRENHEIT` or `NumberItem `&#124;`'°F'` |
 | quantity           |            | Returns the underlying OpenHAB QuantityType object                                                                         | `Numberone.dimension`                                                        |
 | Numeric Methods    |            | All methods for [Ruby Numeric](https://ruby-doc.org/core-2.5.0/Numeric.html)                                               |                                                                              |
 
 ### Examples
 
-Quantity types can perform math operations between them.  
+ QuantityTypes can perform math operations between them.  
 
 ```ruby
-Quantity.new('50 °F') + -Quantity.new('25 °F') = 25.0 °F
-Quantity.new('100 °F') / Quantity.new('2 °F') = 50
-Quantity.new('50 °F') * Quantity.new('2 °F') = 100 °F
-Quantity.new('50 °F') - Quantity.new('25 °F') = 25 °F
-Quantity.new('50 °F') + Quantity.new('50 °F') = 100 °F
+QuantityType.new('50 °F') + -QuantityType.new('25 °F') = 25.0 °F
+QuantityType.new('100 °F') / QuantityType.new('2 °F') = 50
+QuantityType.new('50 °F') * QuantityType.new('2 °F') = 100 °F
+QuantityType.new('50 °F') - QuantityType.new('25 °F') = 25 °F
+QuantityType.new('50 °F') + QuantityType.new('50 °F') = 100 °F
 ```
 
-If the operand is a string it will be automatically converted into a Quantity. 
+If the operand is a string it will be automatically converted into a QuantityType. 
 ```ruby
-Quantity.new('100 °F') / '2 °F' = 50
-Quantity.new('50 °F') * '2 °F' = 100 °F
-Quantity.new('50 °F') - '25 °F' = 25 °F
-Quantity.new('50 °F') + '50 °F' = 100 °F
+QuantityType.new('100 °F') / '2 °F' = 50
+QuantityType.new('50 °F') * '2 °F' = 100 °F
+QuantityType.new('50 °F') - '25 °F' = 25 °F
+QuantityType.new('50 °F') + '50 °F' = 100 °F
 ```
 
-If the operand is a number, it will be unit-less, but the result of the operation will have a unit.  This only works for multiplication and division. 
+If the operand is a number, it will be unit-less, but the result of the operation will have a unit.
 ```ruby
-Quantity.new('50 °F')  * 2 = 100 °F
-Quantity.new('100 °F') / 2 = 50 °F 
+QuantityType.new('50 °F')  * 2 = 100 °F
+QuantityType.new('100 °F') / 2 = 50 °F 
 ```
 
 If the operand is a dimensioned NumberItem it will automatically be converted to a quantity for the operation.
@@ -125,32 +125,32 @@ If the operand is a dimensioned NumberItem it will automatically be converted to
 # NumberF = '2 °F'
 # NumberC = '2 °C'
 
-Quantity.new('50 °F') + NumberF # = 52.0 °F
-Quantity.new('50 °F') + NumberC # = 85.60 °F 
+QuantityType.new('50 °F') + NumberF # = 52.0 °F
+QuantityType.new('50 °F') + NumberC # = 85.60 °F 
 ```
 
-If the operand is a non-dimensioned NumberItem it can be used only in multiplication and division operations.
+If the operand is a non-dimensioned NumberItem it can be used as well.
 
 ```ruby
 # Number Dimensionless = 2
 
-Quantity.new('50 °F') * Dimensionless # = 100 °F   
-Quantity.new('50 °F') / Dimensionless # = 25 °F    
+QuantityType.new('50 °F') * Dimensionless # = 100 °F   
+QuantityType.new('50 °F') / Dimensionless # = 25 °F    
 ```
 
 Quantities can be compared, if they have comparable units.
 ```ruby
-Quantity.new('50 °F') >  Quantity.new('25 °F')  
-Quantity.new('50 °F') >  Quantity.new('525 °F') 
-Quantity.new('50 °F') >= Quantity.new('50 °F')  
-Quantity.new('50 °F') == Quantity.new('50 °F')  
-Quantity.new('50 °F') <  Quantity.new('25 °C')  
+QuantityType.new('50 °F') >  QuantityType.new('25 °F')  
+QuantityType.new('50 °F') >  QuantityType.new('525 °F') 
+QuantityType.new('50 °F') >= QuantityType.new('50 °F')  
+QuantityType.new('50 °F') == QuantityType.new('50 °F')  
+QuantityType.new('50 °F') <  QuantityType.new('25 °C')  
 ```
 
 If the compare-to is a string, it will be automatically converted into a quantity.
 ```ruby
-Quantity.new('50 °F') == '50 °F' 
-Quantity.new('50 °F') <  '25 °C'
+QuantityType.new('50 °F') == '50 °F' 
+QuantityType.new('50 °F') <  '25 °C'
 ```
 
 Dimensioned Number Items can be converted to quantities with other units using the \| operator
@@ -233,7 +233,7 @@ To facilitate conversion of multiple dimensioned and dimensionless numbers the u
 
 unit('°F') { NumberC - NumberF < 4 }               					#= true   
 unit('°F') { NumberC - '24 °C' < 4 }               					#= true   
-unit('°F') { Quantity.new('24 °C') - NumberC < 4 }					#= true   
+unit('°F') { QuantityType.new('24 °C') - NumberC < 4 }					#= true   
 unit('°C') { NumberF - '20 °C' < 2 }               					#= true   
 unit('°C') { NumberF - Dimensionless }             					#= 19.11 °C
 unit('°C') { NumberF - Dimensionless < 20 }        					#= true   

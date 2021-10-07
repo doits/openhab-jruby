@@ -158,7 +158,7 @@ Feature:  items
       """
     And code in a rules file
       """
-      SwitchTest.update OFF
+        SwitchTest.update OFF
       """
     When I deploy the rules file
     Then It should log "SwitchTest Received Update" within 5 seconds
@@ -225,19 +225,6 @@ Feature:  items
       """
     When I deploy the rules file
     Then It should not log "missing oh_item for item type" within 5 seconds
-
-  Scenario: Verify that GroupItem provide oh_item to refer to the OpenHAB object
-    Given group "GroupItem1"
-    And code in a rules file
-      """
-      item = groups["GroupItem1"]
-      logger.info("DSL Object: #{item.class}")
-      unless item&.respond_to?(:oh_item)
-        logger.error("missing oh_item for DSL GroupItem")
-      end
-      """
-    When I deploy the rules file
-    Then It should not log "missing oh_item for DSL GroupItem" within 5 seconds
 
   Scenario Outline: Items can be used as hash keys
     # Ref: https://github.com/boc-tothefuture/openhab-jruby/issues/252

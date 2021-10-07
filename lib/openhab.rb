@@ -1,9 +1,13 @@
 # frozen_string_literal: true
 
-require 'openhab/core/load_path'
-require 'openhab/core/openhab_setup'
-require 'openhab/log/logger'
-require 'openhab/dsl/dsl'
+require 'timeout'
+
+Timeout.timeout(5) do
+  require 'openhab/core/load_path'
+  require 'openhab/core/openhab_setup'
+  require 'openhab/log/logger'
+  require 'openhab/dsl/dsl'
+end
 
 require 'openhab/version'
 

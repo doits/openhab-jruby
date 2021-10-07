@@ -1,10 +1,5 @@
 # frozen_string_literal: true
 
-require 'bigdecimal'
-require 'forwardable'
-require 'java'
-require 'openhab/dsl/items/item_delegate'
-
 module OpenHAB
   module DSL
     module Items
@@ -12,42 +7,11 @@ module OpenHAB
       # Delegator to OpenHAB String Item
       #
       class StringItem
-        extend Forwardable
-        extend OpenHAB::DSL::Items::ItemCommand
         include Comparable
-        extend OpenHAB::DSL::Items::ItemDelegate
 
         # @return [Regex] Regular expression matching blank strings
         BLANK_RE = /\A[[:space:]]*\z/.freeze
         private_constant :BLANK_RE
-
-        def_item_delegator :@string_item
-
-        item_type Java::OrgOpenhabCoreLibraryItems::StringItem
-
-        #
-        # Create a new StringItem
-        #
-        # @param [Java::Org::openhab::core::library::items::StringItem] string_item OpenHAB string item to delegate to
-        #
-        def initialize(string_item)
-          @string_item = string_item
-
-          item_missing_delegate { @string_item }
-          item_missing_delegate { @string_item.state&.to_full_string&.to_s }
-
-          super()
-        end
-
-        #
-        # Convert the StringItem into a String
-        #
-        # @return [String] String representation of the StringItem or
-        #   nil if underlying OpenHAB StringItem does not have a state
-        #
-        def to_str
-          @string_item.state&.to_full_string&.to_s
-        end
 
         #
         # Detect if the string is blank (not set or only whitespace)
@@ -55,9 +19,9 @@ module OpenHAB
         # @return [Boolean] True if string item is not set or contains only whitespace, false otherwise
         #
         def blank?
-          return true unless @string_item.state?
+          return true unless state?
 
-          @string_item.state.to_full_string.to_s.empty? || BLANK_RE.match?(self)
+          state.empty? || BLANK_RE.match?(self)
         end
 
         #
@@ -66,7 +30,18 @@ module OpenHAB
         # @return [Boolean] True if item is not in state UNDEF or NULL and value is not blank
         #
         def truthy?
-          @string_item.state? && blank? == false
+          state? && !blank?
+        end
+
+        # any method that exists on String gets forwarded to state (which will forward as
+        # necessary)
+        (String.instance_methods - instance_methods).each do |method|
+          class_eval <<~RUBY, __FILE__, __LINE__ + 1
+            def #{method}(*args, &block)
+              logger.trace("Forwarding #{method} from StringItem to state \#{state} \#{state.class}: \#{state.method(:#{method})}:\#{state.method(:#{method}).source_location}")
+              state&.#{method}(*args, &block)
+            end
+          RUBY
         end
 
         #
@@ -78,14 +53,15 @@ module OpenHAB
         #   nil comparison to supplied object is not possible.
         #
         def <=>(other)
-          case other
-          when StringItem
-            @string_item.state <=> other.state
-          when String
-            @string_item.state.to_s <=> other
-          else
-            @string_item.state <=> other
+          logger.trace("(#{self.class}) #{self} <=> #{other} (#{other.class})")
+          unless state?
+            return true if other.nil?
+            return true if other.is_a?(GenericItem) && !other.state?
+
+            return nil
           end
+
+          state <=> other
         end
       end
     end

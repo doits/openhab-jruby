@@ -1,52 +1,86 @@
 # frozen_string_literal: true
 
-require 'java'
-require 'singleton'
+require 'openhab/dsl/monkey_patch/events/item_command'
 
-require 'openhab/core/entity_lookup'
-require 'openhab/dsl/lazy_array'
+require_relative 'item_registry'
+
+require_relative 'contact_item'
+require_relative 'date_time_item'
+require_relative 'dimmer_item'
+require_relative 'generic_item'
+require_relative 'group_item'
+require_relative 'image_item'
+require_relative 'number_item'
+require_relative 'player_item'
+require_relative 'rollershutter_item'
+require_relative 'string_item'
+require_relative 'switch_item'
 
 module OpenHAB
   module DSL
-    #
-    # Manages OpenHAB items
-    #
     module Items
-      #
-      # Delegates to underlying set of all OpenHAB Items, provides convenience methods
-      #
-      class Items
-        include LazyArray
-        include Singleton
+      PREDICATE_ALIASES = Hash.new { |_h, k| [:"#{k.downcase}?"] }
+                              .merge({
+                                       'PLAY' => [:playing?],
+                                       'PAUSE' => [:paused?],
+                                       'REWIND' => [:rewinding?],
+                                       'FASTFORWARD' => %i[fastforwarding? fast_forwarding?]
+                                     }).freeze
 
-        # Fetches the named item from the the ItemRegistry
-        # @param [String] name
-        # @return Item from registry, nil if item missing or requested item is a Group Type
-        def [](name)
-          OpenHAB::Core::EntityLookup.lookup_item(name)
-        rescue Java::OrgOpenhabCoreItems::ItemNotFoundException
-          nil
+      COMMAND_ALIASES = Hash.new { |_h, k| k.downcase.to_sym }
+                            .merge({
+                                     'FASTFORWARD' => :fast_forward
+                                   }).freeze
+
+      OpenHAB::Core.logger.trace(constants)
+      # sort classes by hierarchy so we define methods on parent classes first
+      constants.map { |c| const_get(c) }
+               .grep(Module)
+               .select { |k| k <= GenericItem && k != GroupItem }
+               .sort { |a, b| a < b ? -1 : 1 }
+               .reverse_each do |klass|
+        OpenHAB::Core.logger.trace(klass.to_s)
+
+        klass.field_reader :ACCEPTED_COMMAND_TYPES, :ACCEPTED_DATA_TYPES unless klass == GenericItem
+
+        # dynamically define command and state methods
+        klass.ACCEPTED_DATA_TYPES
+             .map(&:ruby_class)
+             .select { |k| k < java.lang.Enum }
+             .flat_map(&:values).each do |state|
+          PREDICATE_ALIASES[state.to_s].each do |predicate|
+            next if klass.instance_methods.include?(predicate)
+
+            OpenHAB::Core.logger.trace("Defining #{klass}##{predicate} for #{state}")
+            klass.class_eval <<~RUBY, __FILE__, __LINE__ + 1
+              def #{predicate}
+                self.raw_state == #{state}
+              end
+            RUBY
+          end
         end
 
-        # Returns true if the given item name exists
-        # @param name [String] Item name to check
-        # @return [Boolean] true if the item exists, false otherwise
-        def include?(name)
-          !$ir.getItems(name).empty? # rubocop: disable Style/GlobalVars
-        end
-        alias key? []
+        klass.ACCEPTED_COMMAND_TYPES
+             .map(&:ruby_class)
+             .select { |k| k < java.lang.Enum }
+             .flat_map(&:values).each do |value|
+          command = COMMAND_ALIASES[value.to_s]
+          next if klass.instance_methods.include?(command)
 
-        # explicit conversion to array
-        def to_a
-          items = $ir.items.grep_v(org.openhab.core.items.GroupItem) # rubocop:disable Style/GlobalVars
-          OpenHAB::Core::EntityLookup.decorate_items(items)
-        end
-      end
+          OpenHAB::Core.logger.trace("Defining #{klass}##{command} for #{value}")
+          klass.class_eval <<~RUBY, __FILE__, __LINE__ + 1
+            def #{command}
+              command(#{value})
+            end
+          RUBY
 
-      # Fetches all non-group items from the item registry
-      # @return [OpenHAB::DSL::Items::Items]
-      def items
-        Items.instance
+          OpenHAB::Core.logger.trace("Defining ItemCommandEvent##{command}? for #{value}")
+          MonkeyPatch::Events::ItemCommandEvent.class_eval <<~RUBY, __FILE__, __LINE__ + 1
+            def #{command}?
+              command == #{value}
+            end
+          RUBY
+        end
       end
     end
   end
