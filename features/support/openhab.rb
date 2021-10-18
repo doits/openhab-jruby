@@ -128,6 +128,11 @@ def truncate_log
   File.open(openhab_log, File::TRUNC)
 end
 
+def openhab_log_level(level='TRACE')
+  #openhab_client("log:set #{level} org.openhab.binding.jrubyscripting")
+  openhab_client("log:set #{level} jsr223")
+end
+
 def delete_things
   openhab_client('openhab:things clear')
 end

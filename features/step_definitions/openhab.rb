@@ -9,6 +9,7 @@ Given('Clean OpenHAB with latest Ruby Libraries') do
   delete_items
   delete_things
   truncate_log
+  openhab_log_level('TRACE')
 end
 
 Then(/^It should log "([^"]*)" within (\d+) seconds$/) do |string, seconds|
@@ -36,6 +37,11 @@ Then('It should not log {string} within {int} seconds') do |string, seconds|
     check_log(string)
   end
 end
+
+Given('library framework set to a log level of {string}') do |level|
+  openhab_log_level(level)
+end  
+
 
 Given('OpenHAB is stopped') do
   stop_openhab

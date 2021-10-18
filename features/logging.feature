@@ -47,7 +47,8 @@ Feature:  logging
     Then It should log 'jsr223.jruby.log_test' within 5 seconds
 
   Scenario: Logging should include rule name inside a rule
-    Given a rule:
+    Given library framework set to a log level of "INFO"
+    And a rule:
       """
       rule 'log test' do
         on_start
@@ -57,4 +58,25 @@ Feature:  logging
       """
     When I deploy the rule
     Then It should log 'jsr223.jruby.log_test' within 5 seconds
+
+  Scenario: Logging should include rule name inside a rule
+    Given library framework set to a log level of "INFO"
+    And code in a rules file:
+      """
+      rule 'Should not log' do
+        on_start
+        run { logger.debug('Should Not Log') }
+      end
+
+      rule 'Should log' do
+        on_start
+        run { logger.debug('Should Log') }
+        log_level :debug
+      end
+      """
+    When I deploy the rule
+    Then It should not log 'Should Not Log' within 5 seconds
+    Then It should log 'Should Log' within 5 seconds
+
+
 
